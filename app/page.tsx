@@ -13,11 +13,13 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   FiUpload, FiCopy, FiCheck, FiX, FiClock,
   FiTrendingUp, FiTrendingDown, FiActivity, FiBarChart2,
   FiTarget, FiAlertTriangle, FiChevronRight,
-  FiChevronDown, FiSearch, FiTrash2, FiRefreshCw, FiImage
+  FiChevronDown, FiSearch, FiTrash2, FiRefreshCw, FiImage,
+  FiZap, FiShield, FiLayers, FiGlobe, FiEye
 } from 'react-icons/fi'
 
 // ===================== CONSTANTS =====================
@@ -140,31 +142,6 @@ const SAMPLE_SIGNAL: SignalData = {
 
 // ===================== HELPER FUNCTIONS =====================
 
-function renderMarkdown(text: string) {
-  if (!text) return null
-  return (
-    <div className="space-y-1.5">
-      {text.split('\n').map((line, i) => {
-        if (line.startsWith('### ')) return <h4 key={i} className="font-semibold text-sm mt-2 mb-0.5">{line.slice(4)}</h4>
-        if (line.startsWith('## ')) return <h3 key={i} className="font-semibold text-base mt-2 mb-0.5">{line.slice(3)}</h3>
-        if (line.startsWith('# ')) return <h2 key={i} className="font-bold text-lg mt-3 mb-1">{line.slice(2)}</h2>
-        if (line.startsWith('- ') || line.startsWith('* ')) return <li key={i} className="ml-4 list-disc text-sm">{formatInline(line.slice(2))}</li>
-        if (/^\d+\.\s/.test(line)) return <li key={i} className="ml-4 list-decimal text-sm">{formatInline(line.replace(/^\d+\.\s/, ''))}</li>
-        if (!line.trim()) return <div key={i} className="h-0.5" />
-        return <p key={i} className="text-sm leading-relaxed">{formatInline(line)}</p>
-      })}
-    </div>
-  )
-}
-
-function formatInline(text: string) {
-  const parts = text.split(/\*\*(.*?)\*\*/g)
-  if (parts.length === 1) return text
-  return parts.map((part, i) =>
-    i % 2 === 1 ? <strong key={i} className="font-semibold">{part}</strong> : part
-  )
-}
-
 function parseConfidence(val?: string): number {
   if (!val) return 0
   const num = parseFloat(val)
@@ -172,34 +149,34 @@ function parseConfidence(val?: string): number {
 }
 
 function getConfidenceColor(score: number): string {
-  if (score >= 8) return 'text-green-400'
+  if (score >= 8) return 'text-emerald-400'
   if (score >= 5) return 'text-amber-400'
   return 'text-red-400'
 }
 
 function getConfidenceBg(score: number): string {
-  if (score >= 8) return 'bg-green-500'
-  if (score >= 5) return 'bg-amber-500'
-  return 'bg-red-500'
+  if (score >= 8) return 'from-emerald-500 to-emerald-400'
+  if (score >= 5) return 'from-amber-500 to-amber-400'
+  return 'from-red-500 to-red-400'
 }
 
 function getVibeColor(vibe?: string): string {
   const v = (vibe ?? '').toLowerCase()
-  if (v.includes('bullish')) return 'bg-green-500/20 text-green-400 border-green-500/30'
-  if (v.includes('bearish')) return 'bg-red-500/20 text-red-400 border-red-500/30'
-  return 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+  if (v.includes('bullish')) return 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+  if (v.includes('bearish')) return 'bg-red-500/15 text-red-400 border-red-500/30'
+  return 'bg-amber-500/15 text-amber-400 border-amber-500/30'
 }
 
-function getSignalColor(signal?: string): { bg: string; text: string; border: string } {
+function getSignalColor(signal?: string): { bg: string; text: string; border: string; glow: string } {
   const s = (signal ?? '').toUpperCase()
-  if (s.includes('CE')) return { bg: 'bg-green-500/15', text: 'text-green-400', border: 'border-green-500/40' }
-  if (s.includes('PE')) return { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/40' }
-  return { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/40' }
+  if (s.includes('CE')) return { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30', glow: 'shadow-emerald-500/20' }
+  if (s.includes('PE')) return { bg: 'bg-red-500/10', text: 'text-red-400', border: 'border-red-500/30', glow: 'shadow-red-500/20' }
+  return { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30', glow: 'shadow-blue-500/20' }
 }
 
 function formatSignalForCopy(data: SignalData): string {
   const lines = [
-    `=== X!TX MARKET SIGNAL GENERATOR by DHR ===`,
+    `=== MARKET SIGNAL GENERATOR by X!TX | Powered by DHR ===`,
     `Date: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
     ``,
     `SIGNAL: ${data?.signal_type ?? 'N/A'}`,
@@ -277,10 +254,11 @@ class ErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-          <div className="text-center p-8 max-w-md">
-            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
+          <div className="text-center p-8 max-w-md glass-card rounded-xl">
+            <FiAlertTriangle className="w-10 h-10 text-destructive mx-auto mb-3" />
+            <h2 className="text-lg font-semibold mb-2">Something went wrong</h2>
             <p className="text-muted-foreground mb-4 text-sm">{this.state.error}</p>
-            <button onClick={() => this.setState({ hasError: false, error: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm">
+            <button onClick={() => this.setState({ hasError: false, error: '' })} className="px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
               Try again
             </button>
           </div>
@@ -291,7 +269,27 @@ class ErrorBoundary extends React.Component<
   }
 }
 
-// ===================== SUB-COMPONENTS =====================
+// ===================== PREMIUM SUB-COMPONENTS =====================
+
+function GlowDot({ color }: { color: string }) {
+  return (
+    <span className="relative flex h-2 w-2">
+      <span className={cn('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', color)} />
+      <span className={cn('relative inline-flex rounded-full h-2 w-2', color)} />
+    </span>
+  )
+}
+
+function SectionIcon({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string }>; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="p-1.5 rounded-md bg-primary/10 border border-primary/20">
+        <Icon className="w-3.5 h-3.5 text-primary" />
+      </div>
+      <span className="text-sm font-semibold tracking-tight">{label}</span>
+    </div>
+  )
+}
 
 function SignalHeader({ data }: { data: SignalData }) {
   const vibeColor = getVibeColor(data?.market_vibe)
@@ -302,14 +300,14 @@ function SignalHeader({ data }: { data: SignalData }) {
   }, [])
 
   return (
-    <div className="flex items-center justify-between flex-wrap gap-2">
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-xs font-mono">{data?.instrument ?? 'N/A'}</Badge>
-        <Badge variant="outline" className="text-xs font-mono">{data?.timeframe ?? 'N/A'}</Badge>
-        <Badge variant="outline" className="text-xs font-mono">{data?.strategy_type ?? 'N/A'}</Badge>
-        <Badge className={cn('text-xs border', vibeColor)}>{data?.market_vibe ?? 'N/A'}</Badge>
+    <div className="animate-float-in flex items-center justify-between flex-wrap gap-2 p-3 glass-card rounded-lg">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant="outline" className="text-xs font-mono bg-primary/5 border-primary/20">{data?.instrument ?? 'N/A'}</Badge>
+        <Badge variant="outline" className="text-xs font-mono bg-secondary/50">{data?.timeframe ?? 'N/A'}</Badge>
+        <Badge variant="outline" className="text-xs font-mono bg-secondary/50">{data?.strategy_type ?? 'N/A'}</Badge>
+        <Badge className={cn('text-xs border font-medium', vibeColor)}>{data?.market_vibe ?? 'N/A'}</Badge>
       </div>
-      <span className="text-xs text-muted-foreground font-mono flex items-center gap-1">
+      <span className="text-[11px] text-muted-foreground font-mono flex items-center gap-1.5">
         <FiClock className="w-3 h-3" />
         {now}
       </span>
@@ -322,223 +320,238 @@ function SignalBlock({ data }: { data: SignalData }) {
   const confidence = parseConfidence(data?.confidence_score)
   const confColor = getConfidenceColor(confidence)
   const confBg = getConfidenceBg(confidence)
+  const isCE = (data?.signal_type ?? '').toUpperCase().includes('CE')
+  const isPE = (data?.signal_type ?? '').toUpperCase().includes('PE')
 
   return (
-    <Card className={cn('border-2', signalColors.border, signalColors.bg)}>
-      <CardContent className="p-4 space-y-3">
+    <div className={cn('animate-float-in rounded-xl border-2 overflow-hidden shadow-lg transition-all duration-300', signalColors.border, signalColors.bg, `shadow-lg ${signalColors.glow}`)}>
+      {/* Signal gradient top bar */}
+      <div className={cn('h-1 w-full bg-gradient-to-r', isCE ? 'from-emerald-600 via-emerald-400 to-emerald-600' : isPE ? 'from-red-600 via-red-400 to-red-600' : 'from-blue-600 via-blue-400 to-blue-600')} />
+
+      <div className="p-5 space-y-4">
+        {/* Signal type and confidence header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {(data?.signal_type ?? '').toUpperCase().includes('CE') ? (
-              <FiTrendingUp className="w-6 h-6 text-green-400" />
-            ) : (data?.signal_type ?? '').toUpperCase().includes('PE') ? (
-              <FiTrendingDown className="w-6 h-6 text-red-400" />
-            ) : (
-              <FiActivity className="w-6 h-6 text-blue-400" />
-            )}
-            <span className={cn('text-2xl font-bold tracking-tight', signalColors.text)}>
-              {data?.signal_type ?? 'N/A'}
-            </span>
+          <div className="flex items-center gap-4">
+            <div className={cn('p-3 rounded-xl', isCE ? 'bg-emerald-500/15' : isPE ? 'bg-red-500/15' : 'bg-blue-500/15')}>
+              {isCE ? (
+                <FiTrendingUp className="w-8 h-8 text-emerald-400" />
+              ) : isPE ? (
+                <FiTrendingDown className="w-8 h-8 text-red-400" />
+              ) : (
+                <FiActivity className="w-8 h-8 text-blue-400" />
+              )}
+            </div>
+            <div>
+              <span className={cn('text-3xl font-bold tracking-tight block', signalColors.text, isCE ? 'signal-ce' : isPE ? 'signal-pe' : '')}>
+                {data?.signal_type ?? 'N/A'}
+              </span>
+              <span className="text-xs text-muted-foreground font-mono mt-0.5 block">{data?.strike_price ?? ''}</span>
+            </div>
           </div>
+
           <div className="text-right">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Confidence</div>
-            <div className={cn('text-xl font-bold', confColor)}>{confidence}/10</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Confidence</div>
+            <div className={cn('text-3xl font-bold tabular-nums', confColor)}>{confidence}<span className="text-base text-muted-foreground">/10</span></div>
           </div>
         </div>
 
-        <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-          <div className={cn('h-full rounded-full transition-all', confBg)} style={{ width: `${confidence * 10}%` }} />
+        {/* Confidence bar */}
+        <div className="w-full bg-muted/40 rounded-full h-2 overflow-hidden">
+          <div className={cn('h-full rounded-full bg-gradient-to-r transition-all duration-700', confBg)} style={{ width: `${confidence * 10}%` }} />
         </div>
 
+        {/* Trade parameters grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <DataCell label="Strike" value={data?.strike_price} highlight />
-          <DataCell label="Entry" value={data?.entry_price} />
-          <DataCell label="Target 1" value={data?.target_1} accent />
-          <DataCell label="Target 2" value={data?.target_2} accent />
-          <DataCell label="SL 1" value={data?.stop_loss_1} destructive />
-          <DataCell label="SL 2" value={data?.stop_loss_2} destructive />
-          <DataCell label="R:R Ratio" value={data?.risk_reward_ratio} highlight />
-          <DataCell label="Trend" value={data?.trend_direction} />
+          <PremiumDataCell label="Entry" value={data?.entry_price} icon={<FiChevronRight className="w-3 h-3" />} />
+          <PremiumDataCell label="Target 1" value={data?.target_1} variant="success" icon={<FiTarget className="w-3 h-3" />} />
+          <PremiumDataCell label="Target 2" value={data?.target_2} variant="success" icon={<FiTarget className="w-3 h-3" />} />
+          <PremiumDataCell label="R:R Ratio" value={data?.risk_reward_ratio} variant="primary" icon={<FiZap className="w-3 h-3" />} />
+          <PremiumDataCell label="SL 1" value={data?.stop_loss_1} variant="danger" icon={<FiShield className="w-3 h-3" />} />
+          <PremiumDataCell label="SL 2" value={data?.stop_loss_2} variant="danger" icon={<FiShield className="w-3 h-3" />} />
+          <PremiumDataCell label="Trend" value={data?.trend_direction} icon={<FiActivity className="w-3 h-3" />} />
+          <PremiumDataCell label="Strategy" value={data?.strategy_type} icon={<FiLayers className="w-3 h-3" />} />
         </div>
 
+        {/* Confidence reasoning */}
         {data?.confidence_reasoning && (
-          <div className="mt-2 p-2 rounded bg-muted/50">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Confidence Reasoning</p>
-            <p className="text-xs leading-relaxed">{data.confidence_reasoning}</p>
+          <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1">
+              <FiEye className="w-3 h-3" /> Signal Reasoning
+            </p>
+            <p className="text-xs leading-relaxed text-foreground/80">{data.confidence_reasoning}</p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
-function DataCell({ label, value, highlight, accent, destructive }: { label: string; value?: string; highlight?: boolean; accent?: boolean; destructive?: boolean }) {
-  const valClass = highlight
-    ? 'text-primary font-semibold'
-    : accent
-    ? 'text-green-400 font-semibold'
-    : destructive
-    ? 'text-red-400 font-semibold'
+function PremiumDataCell({ label, value, variant, icon }: { label: string; value?: string; variant?: 'success' | 'danger' | 'primary'; icon?: React.ReactNode }) {
+  const valClass = variant === 'success'
+    ? 'text-emerald-400'
+    : variant === 'danger'
+    ? 'text-red-400'
+    : variant === 'primary'
+    ? 'text-primary'
     : 'text-foreground'
 
   return (
-    <div className="space-y-0.5">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-      <p className={cn('text-sm font-mono', valClass)}>{value ?? 'N/A'}</p>
+    <div className="p-2.5 rounded-lg bg-muted/20 border border-border/30 hover:border-border/60 transition-colors group">
+      <div className="flex items-center gap-1 mb-1">
+        {icon && <span className="text-muted-foreground group-hover:text-foreground/60 transition-colors">{icon}</span>}
+        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{label}</p>
+      </div>
+      <p className={cn('text-sm font-mono font-semibold', valClass)}>{value ?? 'N/A'}</p>
     </div>
   )
 }
 
 function TechnicalGrid({ data }: { data: SignalData }) {
   return (
-    <Card>
-      <CardHeader className="p-3 pb-2">
-        <CardTitle className="text-sm flex items-center gap-1.5">
-          <FiBarChart2 className="w-4 h-4 text-primary" />
-          Technical Confluence
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-3 pt-0 space-y-3">
+    <div className="animate-float-in glass-card rounded-xl overflow-hidden" style={{ animationDelay: '0.1s' }}>
+      <div className="p-4 border-b border-border/30">
+        <SectionIcon icon={FiBarChart2} label="Technical Confluence" />
         {data?.technical_confluence && (
-          <div className="p-2 rounded bg-primary/10 border border-primary/20">
-            <p className="text-xs leading-relaxed">{data.technical_confluence}</p>
+          <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/15">
+            <p className="text-xs leading-relaxed text-foreground/85">{data.technical_confluence}</p>
           </div>
         )}
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <TechItem label="EMA Analysis" value={data?.ema_analysis} />
-          <TechItem label="RSI" value={data?.rsi_value} />
-          <TechItem label="MACD" value={data?.macd_analysis} />
-          <TechItem label="Candlestick Patterns" value={data?.candlestick_patterns} />
-          <TechItem label="Volume Analysis" value={data?.volume_analysis} />
+      <div className="p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <TechItem label="EMA Analysis" value={data?.ema_analysis} icon={<FiTrendingUp className="w-3 h-3" />} />
+          <TechItem label="RSI" value={data?.rsi_value} icon={<FiActivity className="w-3 h-3" />} />
+          <TechItem label="MACD" value={data?.macd_analysis} icon={<FiBarChart2 className="w-3 h-3" />} />
+          <TechItem label="Candlestick Patterns" value={data?.candlestick_patterns} icon={<FiEye className="w-3 h-3" />} />
+          <TechItem label="Volume Analysis" value={data?.volume_analysis} icon={<FiLayers className="w-3 h-3" />} />
         </div>
 
-        <Separator className="bg-border" />
+        <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
         <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Price Levels</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            <DataCell label="Current Price" value={data?.current_price} highlight />
-            <DataCell label="Day High" value={data?.day_high} />
-            <DataCell label="Day Low" value={data?.day_low} />
-            <DataCell label="PDH" value={data?.pdh} />
-            <DataCell label="PDL" value={data?.pdl} />
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+            <FiTarget className="w-3 h-3" /> Price Levels
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+            <PremiumDataCell label="Current Price" value={data?.current_price} variant="primary" />
+            <PremiumDataCell label="Day High" value={data?.day_high} />
+            <PremiumDataCell label="Day Low" value={data?.day_low} />
+            <PremiumDataCell label="PDH" value={data?.pdh} />
+            <PremiumDataCell label="PDL" value={data?.pdl} />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          <div className="p-2 rounded bg-muted/50">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Support Levels</p>
-            <p className="text-xs font-mono text-green-400">{data?.support_levels ?? 'N/A'}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
+            <p className="text-[10px] text-emerald-400/70 uppercase tracking-widest mb-1">Support Levels</p>
+            <p className="text-xs font-mono text-emerald-400">{data?.support_levels ?? 'N/A'}</p>
           </div>
-          <div className="p-2 rounded bg-muted/50">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Resistance Levels</p>
+          <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/15">
+            <p className="text-[10px] text-red-400/70 uppercase tracking-widest mb-1">Resistance Levels</p>
             <p className="text-xs font-mono text-red-400">{data?.resistance_levels ?? 'N/A'}</p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
-function TechItem({ label, value }: { label: string; value?: string }) {
+function TechItem({ label, value, icon }: { label: string; value?: string; icon?: React.ReactNode }) {
   return (
-    <div className="p-2 rounded bg-muted/50">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{label}</p>
-      <p className="text-xs leading-relaxed">{value ?? 'N/A'}</p>
+    <div className="p-3 rounded-lg bg-muted/20 border border-border/30 hover:border-primary/20 transition-colors">
+      <div className="flex items-center gap-1.5 mb-1">
+        {icon && <span className="text-primary/60">{icon}</span>}
+        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">{label}</p>
+      </div>
+      <p className="text-xs leading-relaxed text-foreground/80">{value ?? 'N/A'}</p>
     </div>
   )
 }
 
 function OptionChainSection({ data }: { data: SignalData }) {
   return (
-    <Card>
-      <CardHeader className="p-3 pb-2">
-        <CardTitle className="text-sm flex items-center gap-1.5">
-          <FiTarget className="w-4 h-4 text-primary" />
-          Option Chain Analysis
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-3 pt-0">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          <DataCell label="Max Pain" value={data?.option_chain_max_pain} highlight />
-          <DataCell label="PCR" value={data?.option_chain_pcr} />
-          <DataCell label="Highest OI CE" value={data?.option_chain_highest_oi_ce} />
-          <DataCell label="Highest OI PE" value={data?.option_chain_highest_oi_pe} />
+    <div className="animate-float-in glass-card rounded-xl overflow-hidden" style={{ animationDelay: '0.15s' }}>
+      <div className="p-4 border-b border-border/30">
+        <SectionIcon icon={FiTarget} label="Option Chain Analysis" />
+      </div>
+      <div className="p-4 space-y-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          <PremiumDataCell label="Max Pain" value={data?.option_chain_max_pain} variant="primary" icon={<FiTarget className="w-3 h-3" />} />
+          <PremiumDataCell label="PCR" value={data?.option_chain_pcr} icon={<FiBarChart2 className="w-3 h-3" />} />
+          <PremiumDataCell label="Highest OI CE" value={data?.option_chain_highest_oi_ce} variant="success" icon={<FiTrendingUp className="w-3 h-3" />} />
+          <PremiumDataCell label="Highest OI PE" value={data?.option_chain_highest_oi_pe} variant="danger" icon={<FiTrendingDown className="w-3 h-3" />} />
         </div>
         {data?.option_chain_oi_interpretation && (
-          <div className="mt-2 p-2 rounded bg-muted/50">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">OI Interpretation</p>
-            <p className="text-xs leading-relaxed">{data.option_chain_oi_interpretation}</p>
+          <div className="p-3 rounded-lg bg-muted/20 border border-border/30">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1"><FiEye className="w-3 h-3" /> OI Interpretation</p>
+            <p className="text-xs leading-relaxed text-foreground/80">{data.option_chain_oi_interpretation}</p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
 function SentimentSection({ data }: { data: SignalData }) {
   return (
-    <Card>
-      <CardHeader className="p-3 pb-2">
-        <CardTitle className="text-sm flex items-center gap-1.5">
-          <FiActivity className="w-4 h-4 text-primary" />
-          Market Sentiment
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-3 pt-0 space-y-2">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-          <DataCell label="GIFT Nifty" value={data?.gift_nifty_level} />
-          <DataCell label="US Futures" value={data?.us_futures} />
-          <DataCell label="Crude Oil" value={data?.crude_oil} />
-          <DataCell label="FII/DII Data" value={data?.fii_dii_data} />
-          <DataCell label="Overall Sentiment" value={data?.overall_sentiment} highlight />
+    <div className="animate-float-in glass-card rounded-xl overflow-hidden" style={{ animationDelay: '0.2s' }}>
+      <div className="p-4 border-b border-border/30">
+        <SectionIcon icon={FiGlobe} label="Market Sentiment" />
+      </div>
+      <div className="p-4 space-y-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+          <PremiumDataCell label="GIFT Nifty" value={data?.gift_nifty_level} icon={<FiGlobe className="w-3 h-3" />} />
+          <PremiumDataCell label="US Futures" value={data?.us_futures} icon={<FiTrendingUp className="w-3 h-3" />} />
+          <PremiumDataCell label="Crude Oil" value={data?.crude_oil} icon={<FiBarChart2 className="w-3 h-3" />} />
+          <PremiumDataCell label="FII/DII Data" value={data?.fii_dii_data} icon={<FiLayers className="w-3 h-3" />} />
+          <PremiumDataCell label="Overall Sentiment" value={data?.overall_sentiment} variant="primary" icon={<FiActivity className="w-3 h-3" />} />
         </div>
         {data?.sentiment_summary && (
-          <div className="mt-2 p-2 rounded bg-muted/50">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Sentiment Summary</p>
-            <p className="text-xs leading-relaxed">{data.sentiment_summary}</p>
+          <div className="p-3 rounded-lg bg-muted/20 border border-border/30">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1 flex items-center gap-1"><FiEye className="w-3 h-3" /> Sentiment Summary</p>
+            <p className="text-xs leading-relaxed text-foreground/80">{data.sentiment_summary}</p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
 function RationaleSection({ data }: { data: SignalData }) {
   return (
-    <div className="space-y-2">
+    <div className="animate-float-in space-y-3" style={{ animationDelay: '0.25s' }}>
       {data?.trade_rationale && (
-        <Card>
-          <CardHeader className="p-3 pb-2">
-            <CardTitle className="text-sm flex items-center gap-1.5">
-              <FiChevronRight className="w-4 h-4 text-primary" />
-              Trade Rationale
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            {renderMarkdown(data.trade_rationale)}
-          </CardContent>
-        </Card>
+        <div className="glass-card rounded-xl overflow-hidden">
+          <div className="p-4 border-b border-border/30">
+            <SectionIcon icon={FiZap} label="Trade Rationale" />
+          </div>
+          <div className="p-4">
+            <p className="text-sm leading-relaxed text-foreground/85">{data.trade_rationale}</p>
+          </div>
+        </div>
       )}
 
       {data?.risk_factors && (
-        <Card className="border-red-500/20">
-          <CardHeader className="p-3 pb-2">
-            <CardTitle className="text-sm flex items-center gap-1.5 text-red-400">
-              <FiAlertTriangle className="w-4 h-4" />
-              Risk Factors
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            {renderMarkdown(data.risk_factors)}
-          </CardContent>
-        </Card>
+        <div className="rounded-xl overflow-hidden border border-red-500/20 bg-red-500/5">
+          <div className="p-4 border-b border-red-500/15">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-red-500/10 border border-red-500/20">
+                <FiAlertTriangle className="w-3.5 h-3.5 text-red-400" />
+              </div>
+              <span className="text-sm font-semibold tracking-tight text-red-400">Risk Factors</span>
+            </div>
+          </div>
+          <div className="p-4">
+            <p className="text-sm leading-relaxed text-red-300/80">{data.risk_factors}</p>
+          </div>
+        </div>
       )}
 
       {data?.disclaimer && (
-        <div className="p-2 rounded bg-muted/30 border border-border">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Disclaimer</p>
-          <p className="text-[11px] text-muted-foreground leading-relaxed">{data.disclaimer}</p>
+        <div className="p-3 rounded-lg bg-muted/15 border border-border/30">
+          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest mb-1">Disclaimer</p>
+          <p className="text-[11px] text-muted-foreground/50 leading-relaxed">{data.disclaimer}</p>
         </div>
       )}
     </div>
@@ -547,193 +560,153 @@ function RationaleSection({ data }: { data: SignalData }) {
 
 function LoadingOverlay({ step, progress }: { step: number; progress: number }) {
   return (
-    <Card className="border-primary/30">
-      <CardContent className="p-6 flex flex-col items-center justify-center space-y-4">
-        <div className="relative w-12 h-12">
-          <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+    <div className="glass-card rounded-xl p-8 animate-pulse-glow">
+      <div className="flex flex-col items-center justify-center space-y-6">
+        {/* Animated spinner */}
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 rounded-full border-2 border-primary/10" />
           <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <div className="absolute inset-2 rounded-full border border-primary/20 border-b-transparent animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <FiZap className="w-5 h-5 text-primary animate-pulse" />
+          </div>
         </div>
-        <div className="text-center space-y-2 w-full max-w-xs">
-          <p className="text-sm font-medium">{LOADING_STEPS[step] ?? 'Processing...'}</p>
-          <Progress value={progress} className="h-1.5" />
-          <p className="text-xs text-muted-foreground">{Math.round(progress)}% complete</p>
+
+        <div className="text-center space-y-3 w-full max-w-sm">
+          <p className="text-sm font-semibold tracking-tight">{LOADING_STEPS[step] ?? 'Processing...'}</p>
+          <div className="relative">
+            <Progress value={progress} className="h-2" />
+            <div className="absolute inset-0 animate-shimmer rounded-full" />
+          </div>
+          <p className="text-xs text-muted-foreground font-mono">{Math.round(progress)}%</p>
         </div>
-        <div className="flex flex-col gap-1 w-full max-w-xs">
+
+        <div className="flex flex-col gap-2 w-full max-w-sm">
           {LOADING_STEPS.map((s, i) => (
-            <div key={i} className="flex items-center gap-2 text-xs">
+            <div key={i} className={cn('flex items-center gap-2.5 text-xs px-3 py-1.5 rounded-md transition-all duration-300', i === step ? 'bg-primary/10 border border-primary/20' : i < step ? 'opacity-60' : 'opacity-30')}>
               {i < step ? (
-                <FiCheck className="w-3 h-3 text-green-400 flex-shrink-0" />
+                <FiCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
               ) : i === step ? (
-                <div className="w-3 h-3 rounded-full border border-primary border-t-transparent animate-spin flex-shrink-0" />
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
               ) : (
-                <div className="w-3 h-3 rounded-full border border-muted-foreground/30 flex-shrink-0" />
+                <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/20 flex-shrink-0" />
               )}
-              <span className={cn(i <= step ? 'text-foreground' : 'text-muted-foreground/50')}>{s}</span>
+              <span className={cn(i <= step ? 'text-foreground' : 'text-muted-foreground/40')}>{s}</span>
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
-function HistoryCard({ item, expanded, onToggle }: { item: SignalHistoryItem; expanded: boolean; onToggle: () => void }) {
+function HistoryCard({ item, expanded, onToggle, onDelete }: { item: SignalHistoryItem; expanded: boolean; onToggle: () => void; onDelete: () => void }) {
   const signalColors = getSignalColor(item.signal?.signal_type)
   const [ts, setTs] = useState('')
+  const confidence = parseConfidence(item.signal?.confidence_score)
 
   useEffect(() => {
     setTs(new Date(item.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }))
   }, [item.timestamp])
 
   return (
-    <Card className="overflow-hidden">
-      <button onClick={onToggle} className="w-full p-3 flex items-center justify-between hover:bg-muted/30 transition-colors">
-        <div className="flex items-center gap-2">
-          <Badge className={cn('text-xs border', signalColors.bg, signalColors.text, signalColors.border)}>
+    <div className="glass-card rounded-xl overflow-hidden transition-all duration-200 hover:border-primary/20">
+      <button onClick={onToggle} className="w-full p-3.5 flex items-center justify-between hover:bg-muted/10 transition-colors">
+        <div className="flex items-center gap-3">
+          <Badge className={cn('text-xs border font-semibold px-2.5', signalColors.bg, signalColors.text, signalColors.border)}>
             {item.signal?.signal_type ?? 'N/A'}
           </Badge>
-          <span className="text-sm font-mono">{item.instrument}</span>
-          <span className="text-xs text-muted-foreground">{item.signal?.strike_price ?? ''}</span>
+          <span className="text-sm font-mono font-medium">{item.instrument}</span>
+          <span className="text-xs text-muted-foreground font-mono">{item.signal?.strike_price ?? ''}</span>
+          <Badge variant="outline" className="text-[10px] font-mono">{confidence}/10</Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">{ts}</span>
-          {expanded ? <FiChevronDown className="w-4 h-4" /> : <FiChevronRight className="w-4 h-4" />}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-muted-foreground font-mono">{ts}</span>
+          <button onClick={(e) => { e.stopPropagation(); onDelete() }} className="p-1 rounded-md opacity-0 group-hover:opacity-100 hover:bg-destructive/10 transition-all">
+            <FiTrash2 className="w-3 h-3 text-destructive" />
+          </button>
+          {expanded ? <FiChevronDown className="w-4 h-4 text-muted-foreground" /> : <FiChevronRight className="w-4 h-4 text-muted-foreground" />}
         </div>
       </button>
       {expanded && (
-        <CardContent className="p-3 pt-0 space-y-3 border-t border-border">
+        <div className="p-4 pt-0 space-y-3 border-t border-border/30">
           <SignalBlock data={item.signal} />
           <TechnicalGrid data={item.signal} />
           <OptionChainSection data={item.signal} />
           <SentimentSection data={item.signal} />
           <RationaleSection data={item.signal} />
-        </CardContent>
-      )}
-    </Card>
-  )
-}
-
-function AgentStatusPanel({ activeAgentId, isGenerating }: { activeAgentId: string | null; isGenerating: boolean }) {
-  return (
-    <Card>
-      <CardHeader className="p-3 pb-2">
-        <CardTitle className="text-xs text-muted-foreground uppercase tracking-wider">Agent Status</CardTitle>
-      </CardHeader>
-      <CardContent className="p-3 pt-0">
-        <div className="flex items-center gap-2">
-          <div className={cn('w-2 h-2 rounded-full', isGenerating ? 'bg-green-400 animate-pulse' : 'bg-muted-foreground/40')} />
-          <span className="text-xs font-mono">Signal Orchestrator Manager</span>
-          {isGenerating && <span className="text-[10px] text-primary">Active</span>}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1">Coordinates chart analysis, sentiment, and signal generation</p>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   )
 }
 
 // ===================== MAIN PAGE =====================
 
 export default function Page() {
-  // Navigation
   const [activeNav, setActiveNav] = useState<'dashboard' | 'history'>('dashboard')
-
-  // Instrument
   const [instrument, setInstrument] = useState<'Nifty 50' | 'Bank Nifty'>('Nifty 50')
-
-  // File uploads
   const [chartFiles, setChartFiles] = useState<FilePreview[]>([])
   const [optionChainFile, setOptionChainFile] = useState<FilePreview | null>(null)
-
-  // Notes
   const [notes, setNotes] = useState('')
-
-  // Signal generation
   const [isGenerating, setIsGenerating] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [signalResult, setSignalResult] = useState<SignalData | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
-
-  // Copy
   const [copied, setCopied] = useState(false)
   const [savedToHistory, setSavedToHistory] = useState(false)
-
-  // Sample data toggle
   const [showSample, setShowSample] = useState(false)
-
-  // History
   const [history, setHistory] = useState<SignalHistoryItem[]>([])
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
   const [historyFilter, setHistoryFilter] = useState<'all' | 'CE' | 'PE'>('all')
   const [historyInstrumentFilter, setHistoryInstrumentFilter] = useState<'all' | 'Nifty 50' | 'Bank Nifty'>('all')
   const [historySearch, setHistorySearch] = useState('')
+  const [isDragOver, setIsDragOver] = useState(false)
 
-  // Refs
   const chartInputRef = useRef<HTMLInputElement>(null)
   const ocInputRef = useRef<HTMLInputElement>(null)
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Load history from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem('signal_history')
       if (stored) {
         const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) {
-          setHistory(parsed)
-        }
+        if (Array.isArray(parsed)) setHistory(parsed)
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, [])
 
-  // Progress animation
   useEffect(() => {
     if (isGenerating) {
       const stepTargets = [15, 35, 60, 85, 100]
       const target = stepTargets[loadingStep] ?? 100
-
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
       progressIntervalRef.current = setInterval(() => {
-        setLoadingProgress(prev => {
-          if (prev >= target - 2) return prev
-          return prev + 0.5
-        })
+        setLoadingProgress(prev => prev >= target - 2 ? prev : prev + 0.5)
       }, 100)
     } else {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current)
-        progressIntervalRef.current = null
-      }
+      if (progressIntervalRef.current) { clearInterval(progressIntervalRef.current); progressIntervalRef.current = null }
       setLoadingProgress(0)
     }
-
-    return () => {
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
-    }
+    return () => { if (progressIntervalRef.current) clearInterval(progressIntervalRef.current) }
   }, [isGenerating, loadingStep])
 
-  // Handle chart file selection
   const handleChartFiles = useCallback((files: FileList | null) => {
     if (!files) return
     const validFiles: FilePreview[] = []
-    const MAX_FILES = 5
-    const MAX_SIZE = 10 * 1024 * 1024
-
     const currentCount = chartFiles.length
-    for (let i = 0; i < files.length && currentCount + validFiles.length < MAX_FILES; i++) {
+    for (let i = 0; i < files.length && currentCount + validFiles.length < 5; i++) {
       const file = files[i]
       if (!file.type.match(/^image\/(png|jpeg|jpg)$/)) continue
-      if (file.size > MAX_SIZE) continue
+      if (file.size > 10 * 1024 * 1024) continue
       validFiles.push({ file, preview: URL.createObjectURL(file) })
     }
     setChartFiles(prev => [...prev, ...validFiles])
     setError(null)
   }, [chartFiles.length])
 
-  // Handle option chain file
   const handleOCFile = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return
     const file = files[0]
@@ -743,7 +716,6 @@ export default function Page() {
     setError(null)
   }, [])
 
-  // Remove chart file
   const removeChartFile = useCallback((idx: number) => {
     setChartFiles(prev => {
       const newFiles = [...prev]
@@ -753,531 +725,456 @@ export default function Page() {
     })
   }, [])
 
-  // Remove OC file
   const removeOCFile = useCallback(() => {
     if (optionChainFile) URL.revokeObjectURL(optionChainFile.preview)
     setOptionChainFile(null)
   }, [optionChainFile])
 
-  // Drag and drop handlers
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }, [])
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(true) }, [])
+  const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false) }, [])
+  const handleChartDrop = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragOver(false); handleChartFiles(e.dataTransfer.files) }, [handleChartFiles])
+  const handleOCDrop = useCallback((e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); handleOCFile(e.dataTransfer.files) }, [handleOCFile])
 
-  const handleChartDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    handleChartFiles(e.dataTransfer.files)
-  }, [handleChartFiles])
-
-  const handleOCDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    handleOCFile(e.dataTransfer.files)
-  }, [handleOCFile])
-
-  // Generate signal
   const handleGenerateSignal = async () => {
-    setIsGenerating(true)
-    setError(null)
-    setSignalResult(null)
-    setCopied(false)
-    setSavedToHistory(false)
-    setLoadingStep(0)
-    setLoadingProgress(0)
-    setActiveAgentId(MANAGER_AGENT_ID)
-
+    setIsGenerating(true); setError(null); setSignalResult(null); setCopied(false); setSavedToHistory(false); setLoadingStep(0); setLoadingProgress(0)
     try {
-      // Step 1: Upload files
       setLoadingStep(1)
       const allFiles: File[] = chartFiles.map(fp => fp.file)
       if (optionChainFile) allFiles.push(optionChainFile.file)
-
       const uploadResult = await uploadFiles(allFiles)
-
-      if (!uploadResult.success) {
-        setError('Failed to upload charts. Please try again.')
-        setIsGenerating(false)
-        setActiveAgentId(null)
-        return
-      }
-
-      // Step 2: Analyzing
+      if (!uploadResult.success) { setError('Failed to upload charts. Please try again.'); setIsGenerating(false); return }
       setLoadingStep(2)
-
       const message = `Analyze the uploaded chart images for ${instrument}. ${optionChainFile ? 'Option chain screenshot is also included.' : ''}${notes ? ` Trader notes: ${notes}` : ''} Generate a comprehensive trading signal.`
-
-      // Step 3: Scanning markets
       setLoadingStep(3)
-
-      const result = await callAIAgent(message, MANAGER_AGENT_ID, {
-        assets: uploadResult.asset_ids,
-      })
-
-      // Step 4: Generating signal
-      setLoadingStep(4)
-      setLoadingProgress(90)
-
+      const result = await callAIAgent(message, MANAGER_AGENT_ID, { assets: uploadResult.asset_ids })
+      setLoadingStep(4); setLoadingProgress(90)
       if (result.success) {
         let signalData = result?.response?.result
-
-        // Handle string responses
-        if (typeof signalData === 'string') {
-          try {
-            signalData = JSON.parse(signalData)
-          } catch {
-            // Try raw_response
-            if (result.raw_response) {
-              try {
-                const raw = JSON.parse(result.raw_response)
-                signalData = raw?.result || raw?.response?.result || raw
-              } catch {
-                // leave as is
-              }
-            }
-          }
-        }
-
-        // Also check if empty
-        if (!signalData || (typeof signalData === 'object' && Object.keys(signalData).length === 0)) {
-          if (result.raw_response) {
-            try {
-              const raw = JSON.parse(result.raw_response)
-              signalData = raw?.result || raw?.response?.result || raw
-            } catch {
-              // leave as is
-            }
-          }
-        }
-
-        setSignalResult(signalData as SignalData)
-        setLoadingProgress(100)
-      } else {
-        setError(result.error || 'Failed to generate signal. Please try again.')
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.')
-    } finally {
-      setIsGenerating(false)
-      setActiveAgentId(null)
-    }
+        if (typeof signalData === 'string') { try { signalData = JSON.parse(signalData) } catch { if (result.raw_response) { try { const raw = JSON.parse(result.raw_response); signalData = raw?.result || raw?.response?.result || raw } catch {} } } }
+        if (!signalData || (typeof signalData === 'object' && Object.keys(signalData).length === 0)) { if (result.raw_response) { try { const raw = JSON.parse(result.raw_response); signalData = raw?.result || raw?.response?.result || raw } catch {} } }
+        setSignalResult(signalData as SignalData); setLoadingProgress(100)
+      } else { setError(result.error || 'Failed to generate signal. Please try again.') }
+    } catch { setError('An unexpected error occurred. Please try again.') }
+    finally { setIsGenerating(false) }
   }
 
-  // Copy signal
   const handleCopy = async () => {
     const data = showSample ? SAMPLE_SIGNAL : signalResult
     if (!data) return
-    const text = formatSignalForCopy(data)
-    const success = await copyToClipboard(text)
-    if (success) {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
+    const success = await copyToClipboard(formatSignalForCopy(data))
+    if (success) { setCopied(true); setTimeout(() => setCopied(false), 2000) }
   }
 
-  // Save to history
   const handleSaveToHistory = () => {
     const data = showSample ? SAMPLE_SIGNAL : signalResult
     if (!data) return
-    const item: SignalHistoryItem = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      instrument: data?.instrument || instrument,
-      signal: data,
-    }
+    const item: SignalHistoryItem = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`, timestamp: new Date().toISOString(), instrument: data?.instrument || instrument, signal: data }
     const updated = [item, ...history]
     setHistory(updated)
-    try {
-      localStorage.setItem('signal_history', JSON.stringify(updated))
-    } catch {
-      // storage full
-    }
-    setSavedToHistory(true)
-    setTimeout(() => setSavedToHistory(false), 2000)
+    try { localStorage.setItem('signal_history', JSON.stringify(updated)) } catch {}
+    setSavedToHistory(true); setTimeout(() => setSavedToHistory(false), 2000)
   }
 
-  // Delete history item
   const handleDeleteHistory = (id: string) => {
     const updated = history.filter(h => h.id !== id)
     setHistory(updated)
-    try {
-      localStorage.setItem('signal_history', JSON.stringify(updated))
-    } catch {
-      // ignore
-    }
+    try { localStorage.setItem('signal_history', JSON.stringify(updated)) } catch {}
   }
 
-  // New analysis
   const handleNewAnalysis = () => {
     chartFiles.forEach(fp => URL.revokeObjectURL(fp.preview))
     if (optionChainFile) URL.revokeObjectURL(optionChainFile.preview)
-    setChartFiles([])
-    setOptionChainFile(null)
-    setNotes('')
-    setSignalResult(null)
-    setError(null)
-    setCopied(false)
-    setSavedToHistory(false)
-    setShowSample(false)
+    setChartFiles([]); setOptionChainFile(null); setNotes(''); setSignalResult(null); setError(null); setCopied(false); setSavedToHistory(false); setShowSample(false)
   }
 
-  // The active signal data (sample or real)
   const displayData = showSample ? SAMPLE_SIGNAL : signalResult
   const hasSignal = displayData !== null
 
-  // Filtered history
   const filteredHistory = history.filter(item => {
-    if (historyFilter !== 'all') {
-      const st = (item.signal?.signal_type ?? '').toUpperCase()
-      if (historyFilter === 'CE' && !st.includes('CE')) return false
-      if (historyFilter === 'PE' && !st.includes('PE')) return false
-    }
+    if (historyFilter !== 'all') { const st = (item.signal?.signal_type ?? '').toUpperCase(); if (historyFilter === 'CE' && !st.includes('CE')) return false; if (historyFilter === 'PE' && !st.includes('PE')) return false }
     if (historyInstrumentFilter !== 'all' && item.instrument !== historyInstrumentFilter) return false
-    if (historySearch) {
-      const search = historySearch.toLowerCase()
-      const haystack = `${item.instrument} ${item.signal?.signal_type ?? ''} ${item.signal?.strike_price ?? ''}`.toLowerCase()
-      if (!haystack.includes(search)) return false
-    }
+    if (historySearch) { const s = historySearch.toLowerCase(); if (!`${item.instrument} ${item.signal?.signal_type ?? ''} ${item.signal?.strike_price ?? ''}`.toLowerCase().includes(s)) return false }
     return true
   })
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
-        {/* Fixed Header */}
-        <header className="sticky top-0 z-40 border-b border-border bg-card/90 backdrop-blur-sm">
-          <div className="flex items-center justify-between px-4 py-2">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <FiActivity className="w-5 h-5 text-primary" />
-                <h1 className="text-base font-bold tracking-tight">X!TX Market Signal Generator by DHR</h1>
-              </div>
-              <Separator orientation="vertical" className="h-5 bg-border" />
-              <div className="flex items-center gap-1 bg-muted rounded-sm p-0.5">
-                <button onClick={() => setInstrument('Nifty 50')} className={cn('px-3 py-1 text-xs font-medium rounded-sm transition-colors', instrument === 'Nifty 50' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                  NIFTY 50
-                </button>
-                <button onClick={() => setInstrument('Bank Nifty')} className={cn('px-3 py-1 text-xs font-medium rounded-sm transition-colors', instrument === 'Bank Nifty' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                  BANK NIFTY
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="sample-toggle" className="text-xs text-muted-foreground cursor-pointer">Sample Data</Label>
-                <Switch id="sample-toggle" checked={showSample} onCheckedChange={setShowSample} />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar */}
-          <aside className="w-48 border-r border-border bg-card/50 flex flex-col shrink-0">
-            <nav className="p-2 space-y-1">
-              <button onClick={() => setActiveNav('dashboard')} className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-sm text-sm transition-colors', activeNav === 'dashboard' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50')}>
-                <FiBarChart2 className="w-4 h-4" />
-                Signal Dashboard
-              </button>
-              <button onClick={() => setActiveNav('history')} className={cn('w-full flex items-center gap-2 px-3 py-2 rounded-sm text-sm transition-colors', activeNav === 'history' ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50')}>
-                <FiClock className="w-4 h-4" />
-                Signal History
-                {history.length > 0 && (
-                  <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0">{history.length}</Badge>
-                )}
-              </button>
-            </nav>
-            <div className="mt-auto p-2">
-              <AgentStatusPanel activeAgentId={activeAgentId} isGenerating={isGenerating} />
-            </div>
-          </aside>
-
-          {/* Main Content */}
-          <main className="flex-1 overflow-y-auto">
-            {activeNav === 'dashboard' ? (
-              <div className="flex flex-col lg:flex-row h-full">
-                {/* Left Column - Input Panel */}
-                <div className="w-full lg:w-[40%] border-r border-border p-4 space-y-4 overflow-y-auto">
-                  {/* Instrument display */}
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">{instrument}</Badge>
-                    <span className="text-xs text-muted-foreground">Options Signal Generator</span>
-                  </div>
-
-                  {/* Chart Upload Zone */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                      Upload Chart(s) - supports 1m to 1hr timeframes
-                    </Label>
-                    <div
-                      onDragOver={handleDragOver}
-                      onDrop={handleChartDrop}
-                      onClick={() => chartInputRef.current?.click()}
-                      className="border-2 border-dashed border-border rounded-sm p-4 cursor-pointer hover:border-primary/50 transition-colors flex flex-col items-center justify-center gap-2 min-h-[120px]"
-                    >
-                      <FiUpload className="w-6 h-6 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground text-center">
-                        Drag & drop or click to upload<br />
-                        PNG/JPG, max 5 files, 10MB each
-                      </p>
-                      <input
-                        ref={chartInputRef}
-                        type="file"
-                        accept="image/png,image/jpeg,image/jpg"
-                        multiple
-                        onChange={(e) => handleChartFiles(e.target.files)}
-                        className="hidden"
-                      />
+      <TooltipProvider>
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+          {/* Premium Header */}
+          <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-xl">
+            <div className="flex items-center justify-between px-5 py-3">
+              <div className="flex items-center gap-4">
+                {/* Logo/Brand */}
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary via-primary/80 to-accent flex items-center justify-center animate-gradient-flow">
+                      <FiZap className="w-5 h-5 text-white" />
                     </div>
-                    {chartFiles.length > 0 && (
-                      <div className="mt-2 grid grid-cols-3 gap-2">
-                        {chartFiles.map((fp, idx) => (
-                          <div key={idx} className="relative group rounded-sm overflow-hidden border border-border">
-                            <img src={fp.preview} alt={`Chart ${idx + 1}`} className="w-full h-16 object-cover" />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <button onClick={(e) => { e.stopPropagation(); removeChartFile(idx) }} className="p-1 bg-red-500/80 rounded-sm">
+                    <GlowDot color="bg-emerald-400" />
+                  </div>
+                  <div>
+                    <h1 className="text-sm font-bold tracking-tight leading-none">
+                      Market Signal Generator <span className="text-primary">by X!TX</span>
+                    </h1>
+                    <p className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">Powered by DHR</p>
+                  </div>
+                </div>
+
+                <div className="h-8 w-px bg-border/50" />
+
+                {/* Instrument Toggle */}
+                <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 border border-border/30">
+                  <button onClick={() => setInstrument('Nifty 50')} className={cn('px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-200', instrument === 'Nifty 50' ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25' : 'text-muted-foreground hover:text-foreground')}>
+                    NIFTY 50
+                  </button>
+                  <button onClick={() => setInstrument('Bank Nifty')} className={cn('px-4 py-1.5 text-xs font-semibold rounded-md transition-all duration-200', instrument === 'Bank Nifty' ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25' : 'text-muted-foreground hover:text-foreground')}>
+                    BANK NIFTY
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="sample-toggle" className="text-[11px] text-muted-foreground cursor-pointer">Sample Data</Label>
+                  <Switch id="sample-toggle" checked={showSample} onCheckedChange={setShowSample} />
+                </div>
+              </div>
+            </div>
+            {/* Gradient line */}
+            <div className="header-glow" />
+          </header>
+
+          <div className="flex flex-1 overflow-hidden">
+            {/* Sidebar */}
+            <aside className="w-52 border-r border-border/30 bg-card/30 backdrop-blur-sm flex flex-col shrink-0">
+              <nav className="p-3 space-y-1">
+                <button onClick={() => setActiveNav('dashboard')} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200', activeNav === 'dashboard' ? 'bg-primary/10 text-primary font-semibold border border-primary/20 shadow-sm shadow-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30')}>
+                  <FiBarChart2 className="w-4 h-4" />
+                  Signal Dashboard
+                </button>
+                <button onClick={() => setActiveNav('history')} className={cn('w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200', activeNav === 'history' ? 'bg-primary/10 text-primary font-semibold border border-primary/20 shadow-sm shadow-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted/30')}>
+                  <FiClock className="w-4 h-4" />
+                  Signal History
+                  {history.length > 0 && (
+                    <Badge variant="secondary" className="ml-auto text-[10px] px-1.5 py-0 bg-primary/15 text-primary border-primary/20">{history.length}</Badge>
+                  )}
+                </button>
+              </nav>
+
+              {/* Agent Status */}
+              <div className="mt-auto p-3">
+                <div className="glass-card rounded-xl p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2">Agent Status</p>
+                  <div className="flex items-center gap-2">
+                    <GlowDot color={isGenerating ? 'bg-emerald-400' : 'bg-muted-foreground/30'} />
+                    <span className="text-[11px] font-mono text-foreground/70">Signal Orchestrator</span>
+                  </div>
+                  {isGenerating && <p className="text-[10px] text-primary font-medium mt-1 ml-4">Processing...</p>}
+                  <div className="mt-2 pt-2 border-t border-border/20">
+                    <p className="text-[9px] text-muted-foreground/50">3 sub-agents: Chart Analysis, Sentiment, Signal Gen</p>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto">
+              {activeNav === 'dashboard' ? (
+                <div className="flex flex-col lg:flex-row h-full">
+                  {/* Input Panel */}
+                  <div className="w-full lg:w-[38%] border-r border-border/30 overflow-y-auto">
+                    <div className="p-5 space-y-5">
+                      {/* Instrument badge */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/15">
+                          <FiActivity className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-semibold text-primary">{instrument}</span>
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">Options Signal Generator</span>
+                      </div>
+
+                      {/* Chart Upload */}
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 block flex items-center gap-1.5">
+                          <FiUpload className="w-3 h-3" /> Upload Chart(s) - 1m to 1hr timeframes
+                        </Label>
+                        <div
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleChartDrop}
+                          onClick={() => chartInputRef.current?.click()}
+                          className={cn('border-2 border-dashed rounded-xl p-6 cursor-pointer transition-all duration-300 flex flex-col items-center justify-center gap-3 min-h-[140px]',
+                            isDragOver ? 'border-primary bg-primary/5 scale-[1.02]' : 'border-border/50 hover:border-primary/40 hover:bg-muted/10'
+                          )}
+                        >
+                          <div className={cn('p-3 rounded-xl transition-colors', isDragOver ? 'bg-primary/15' : 'bg-muted/30')}>
+                            <FiUpload className={cn('w-7 h-7 transition-colors', isDragOver ? 'text-primary' : 'text-muted-foreground')} />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs font-medium">Drag & drop charts here</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">PNG/JPG, max 5 files, 10MB each</p>
+                          </div>
+                          <input ref={chartInputRef} type="file" accept="image/png,image/jpeg,image/jpg" multiple onChange={(e) => handleChartFiles(e.target.files)} className="hidden" />
+                        </div>
+                        {chartFiles.length > 0 && (
+                          <div className="mt-3 grid grid-cols-3 gap-2">
+                            {chartFiles.map((fp, idx) => (
+                              <div key={idx} className="relative group rounded-lg overflow-hidden border border-border/30 hover:border-primary/30 transition-colors">
+                                <img src={fp.preview} alt={`Chart ${idx + 1}`} className="w-full h-18 object-cover" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <button onClick={(e) => { e.stopPropagation(); removeChartFile(idx) }} className="p-1.5 bg-red-500/90 rounded-lg hover:bg-red-500 transition-colors">
+                                    <FiX className="w-3 h-3 text-white" />
+                                  </button>
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1">
+                                  <p className="text-[9px] text-white/90 truncate font-medium">{fp.file.name}</p>
+                                  <p className="text-[8px] text-white/50">{formatFileSize(fp.file.size)}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-[10px] text-muted-foreground mt-1.5 font-mono">{chartFiles.length}/5 uploaded</p>
+                      </div>
+
+                      {/* Option Chain Upload */}
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 block flex items-center gap-1.5">
+                          <FiImage className="w-3 h-3" /> Option Chain Screenshot (optional)
+                        </Label>
+                        {!optionChainFile ? (
+                          <div
+                            onDragOver={handleDragOver}
+                            onDrop={handleOCDrop}
+                            onClick={() => ocInputRef.current?.click()}
+                            className="border border-dashed border-border/50 rounded-lg p-3 cursor-pointer hover:border-primary/40 hover:bg-muted/10 transition-all flex items-center gap-3"
+                          >
+                            <div className="p-2 rounded-lg bg-muted/20">
+                              <FiImage className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <p className="text-xs text-muted-foreground">Upload option chain screenshot</p>
+                            <input ref={ocInputRef} type="file" accept="image/png,image/jpeg,image/jpg" onChange={(e) => handleOCFile(e.target.files)} className="hidden" />
+                          </div>
+                        ) : (
+                          <div className="relative group rounded-lg overflow-hidden border border-border/30 hover:border-primary/30 transition-colors">
+                            <img src={optionChainFile.preview} alt="Option Chain" className="w-full h-20 object-cover" />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <button onClick={removeOCFile} className="p-1.5 bg-red-500/90 rounded-lg hover:bg-red-500 transition-colors">
                                 <FiX className="w-3 h-3 text-white" />
                               </button>
                             </div>
-                            <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5">
-                              <p className="text-[9px] text-white truncate">{fp.file.name}</p>
-                              <p className="text-[8px] text-white/60">{formatFileSize(fp.file.size)}</p>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1 flex items-center justify-between">
+                              <p className="text-[9px] text-white/90 truncate font-medium">{optionChainFile.file.name}</p>
+                              <p className="text-[8px] text-white/50">{formatFileSize(optionChainFile.file.size)}</p>
                             </div>
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-                    <p className="text-[10px] text-muted-foreground mt-1">{chartFiles.length}/5 charts uploaded</p>
-                  </div>
 
-                  {/* Option Chain Upload */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                      Option Chain Screenshot (optional)
-                    </Label>
-                    {!optionChainFile ? (
-                      <div
-                        onDragOver={handleDragOver}
-                        onDrop={handleOCDrop}
-                        onClick={() => ocInputRef.current?.click()}
-                        className="border border-dashed border-border rounded-sm p-3 cursor-pointer hover:border-primary/50 transition-colors flex items-center gap-2"
-                      >
-                        <FiImage className="w-4 h-4 text-muted-foreground" />
-                        <p className="text-xs text-muted-foreground">Upload option chain screenshot</p>
-                        <input
-                          ref={ocInputRef}
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg"
-                          onChange={(e) => handleOCFile(e.target.files)}
-                          className="hidden"
+                      {/* Notes */}
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 block">Trader Notes (optional)</Label>
+                        <Input
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value.slice(0, 200))}
+                          placeholder="E.g., Expecting breakout above 24500..."
+                          className="text-sm bg-input/50 border-border/40 focus:border-primary/50 rounded-lg"
+                          maxLength={200}
                         />
+                        <p className="text-[10px] text-muted-foreground/50 mt-1 text-right font-mono">{notes.length}/200</p>
                       </div>
-                    ) : (
-                      <div className="relative group rounded-sm overflow-hidden border border-border">
-                        <img src={optionChainFile.preview} alt="Option Chain" className="w-full h-20 object-cover" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button onClick={removeOCFile} className="p-1 bg-red-500/80 rounded-sm">
-                            <FiX className="w-3 h-3 text-white" />
-                          </button>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5 flex items-center justify-between">
-                          <p className="text-[9px] text-white truncate">{optionChainFile.file.name}</p>
-                          <p className="text-[8px] text-white/60">{formatFileSize(optionChainFile.file.size)}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Notes */}
-                  <div>
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                      Trader Notes (optional)
-                    </Label>
-                    <Input
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value.slice(0, 200))}
-                      placeholder="E.g., Expecting breakout above 24500..."
-                      className="text-sm bg-input border-border"
-                      maxLength={200}
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-0.5 text-right">{notes.length}/200</p>
-                  </div>
-
-                  {/* Error display */}
-                  {error && (
-                    <div className="p-2 rounded-sm bg-destructive/10 border border-destructive/30 flex items-start gap-2">
-                      <FiAlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-destructive">{error}</p>
-                    </div>
-                  )}
-
-                  {/* Generate Button */}
-                  <Button
-                    onClick={handleGenerateSignal}
-                    disabled={isGenerating || (chartFiles.length === 0 && !showSample)}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-                  >
-                    {isGenerating ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" />
-                        Generating Signal...
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <FiActivity className="w-4 h-4" />
-                        Generate Signal
-                      </span>
-                    )}
-                  </Button>
-
-                  {chartFiles.length === 0 && !showSample && (
-                    <p className="text-[10px] text-muted-foreground text-center">Upload at least one chart to enable signal generation</p>
-                  )}
-                </div>
-
-                {/* Right Column - Signal Output */}
-                <div className="flex-1 overflow-y-auto">
-                  <ScrollArea className="h-full">
-                    <div className="p-4 space-y-3">
-                      {isGenerating ? (
-                        <LoadingOverlay step={loadingStep} progress={loadingProgress} />
-                      ) : hasSignal ? (
-                        <>
-                          {/* Signal Header */}
-                          <SignalHeader data={displayData} />
-
-                          {/* Action Bar */}
-                          <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" onClick={handleCopy} className="text-xs gap-1.5">
-                              {copied ? <FiCheck className="w-3 h-3 text-green-400" /> : <FiCopy className="w-3 h-3" />}
-                              {copied ? 'Copied' : 'Copy Signal'}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={handleSaveToHistory} className="text-xs gap-1.5" disabled={savedToHistory}>
-                              {savedToHistory ? <FiCheck className="w-3 h-3 text-green-400" /> : <FiClock className="w-3 h-3" />}
-                              {savedToHistory ? 'Saved' : 'Save to History'}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={handleNewAnalysis} className="text-xs gap-1.5">
-                              <FiRefreshCw className="w-3 h-3" />
-                              New Analysis
-                            </Button>
+                      {/* Error */}
+                      {error && (
+                        <div className="p-3 rounded-lg bg-destructive/8 border border-destructive/25 flex items-start gap-2.5 animate-float-in">
+                          <FiAlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-destructive font-medium">Error</p>
+                            <p className="text-[11px] text-destructive/80 mt-0.5">{error}</p>
                           </div>
-
-                          {/* Signal Block */}
-                          <SignalBlock data={displayData} />
-
-                          {/* Technical Confluence */}
-                          <TechnicalGrid data={displayData} />
-
-                          {/* Option Chain */}
-                          <OptionChainSection data={displayData} />
-
-                          {/* Sentiment */}
-                          <SentimentSection data={displayData} />
-
-                          {/* Trade Rationale & Risk */}
-                          <RationaleSection data={displayData} />
-                        </>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-4">
-                          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
-                            <FiBarChart2 className="w-8 h-8 text-muted-foreground/50" />
-                          </div>
-                          <div className="space-y-1">
-                            <h3 className="text-sm font-medium">No Signal Generated</h3>
-                            <p className="text-xs text-muted-foreground max-w-xs">
-                              Upload a chart image and click Generate Signal to get a comprehensive options trading signal with technicals, option chain analysis, and market sentiment.
-                            </p>
-                          </div>
-                          <p className="text-[10px] text-muted-foreground">
-                            Or toggle &quot;Sample Data&quot; in the header to preview a sample signal.
-                          </p>
                         </div>
                       )}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </div>
-            ) : (
-              /* History View */
-              <div className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold">Signal History</h2>
-                  <span className="text-xs text-muted-foreground">{filteredHistory.length} signal{filteredHistory.length !== 1 ? 's' : ''}</span>
-                </div>
 
-                {/* Filters */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1 bg-muted rounded-sm p-0.5">
-                    {(['all', 'CE', 'PE'] as const).map(f => (
-                      <button key={f} onClick={() => setHistoryFilter(f)} className={cn('px-2 py-1 text-xs rounded-sm transition-colors', historyFilter === f ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                        {f === 'all' ? 'All' : `BUY ${f}`}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-1 bg-muted rounded-sm p-0.5">
-                    {(['all', 'Nifty 50', 'Bank Nifty'] as const).map(f => (
-                      <button key={f} onClick={() => setHistoryInstrumentFilter(f)} className={cn('px-2 py-1 text-xs rounded-sm transition-colors', historyInstrumentFilter === f ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
-                        {f === 'all' ? 'All' : f}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="relative flex-1 min-w-[150px] max-w-xs">
-                    <FiSearch className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                    <Input
-                      value={historySearch}
-                      onChange={(e) => setHistorySearch(e.target.value)}
-                      placeholder="Search signals..."
-                      className="text-xs pl-7 h-7 bg-input border-border"
-                    />
-                  </div>
-                </div>
-
-                {/* History List */}
-                {filteredHistory.length > 0 ? (
-                  <div className="space-y-2">
-                    {filteredHistory.map(item => (
-                      <div key={item.id} className="relative group">
-                        <HistoryCard
-                          item={item}
-                          expanded={expandedHistoryId === item.id}
-                          onToggle={() => setExpandedHistoryId(prev => prev === item.id ? null : item.id)}
-                        />
-                        <button
-                          onClick={() => handleDeleteHistory(item.id)}
-                          className="absolute top-2 right-10 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-sm bg-destructive/10 hover:bg-destructive/20"
-                        >
-                          <FiTrash2 className="w-3 h-3 text-destructive" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center min-h-[300px] text-center space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center">
-                      <FiClock className="w-6 h-6 text-muted-foreground/50" />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium">No Signals in History</h3>
-                      <p className="text-xs text-muted-foreground max-w-xs">
-                        {history.length > 0
-                          ? 'No signals match your current filters.'
-                          : 'Head to the dashboard to create your first signal.'}
-                      </p>
-                    </div>
-                    {history.length === 0 && (
-                      <Button size="sm" variant="outline" onClick={() => setActiveNav('dashboard')} className="text-xs gap-1.5">
-                        <FiBarChart2 className="w-3 h-3" />
-                        Go to Dashboard
+                      {/* Generate Button */}
+                      <Button
+                        onClick={handleGenerateSignal}
+                        disabled={isGenerating || (chartFiles.length === 0 && !showSample)}
+                        className={cn('w-full h-11 rounded-lg font-semibold text-sm transition-all duration-300',
+                          isGenerating
+                            ? 'bg-primary/80'
+                            : chartFiles.length > 0 || showSample
+                            ? 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/20 hover:shadow-primary/30'
+                            : ''
+                        )}
+                      >
+                        {isGenerating ? (
+                          <span className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground animate-spin" />
+                            Generating Signal...
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-2">
+                            <FiZap className="w-4 h-4" />
+                            Generate Signal
+                          </span>
+                        )}
                       </Button>
-                    )}
+
+                      {chartFiles.length === 0 && !showSample && (
+                        <p className="text-[10px] text-muted-foreground/50 text-center">Upload at least one chart to enable signal generation</p>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
-          </main>
+
+                  {/* Signal Output */}
+                  <div className="flex-1 overflow-y-auto">
+                    <ScrollArea className="h-full">
+                      <div className="p-5 space-y-4">
+                        {isGenerating ? (
+                          <LoadingOverlay step={loadingStep} progress={loadingProgress} />
+                        ) : hasSignal ? (
+                          <>
+                            <SignalHeader data={displayData} />
+
+                            {/* Action Bar */}
+                            <div className="flex items-center gap-2 animate-float-in">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="outline" onClick={handleCopy} className="text-xs gap-1.5 rounded-lg border-border/40 hover:border-primary/30 hover:bg-primary/5">
+                                    {copied ? <FiCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FiCopy className="w-3.5 h-3.5" />}
+                                    {copied ? 'Copied' : 'Copy Signal'}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p className="text-xs">Copy signal to clipboard</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="outline" onClick={handleSaveToHistory} className="text-xs gap-1.5 rounded-lg border-border/40 hover:border-primary/30 hover:bg-primary/5" disabled={savedToHistory}>
+                                    {savedToHistory ? <FiCheck className="w-3.5 h-3.5 text-emerald-400" /> : <FiClock className="w-3.5 h-3.5" />}
+                                    {savedToHistory ? 'Saved' : 'Save to History'}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p className="text-xs">Save signal to history</p></TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="outline" onClick={handleNewAnalysis} className="text-xs gap-1.5 rounded-lg border-border/40 hover:border-primary/30 hover:bg-primary/5">
+                                    <FiRefreshCw className="w-3.5 h-3.5" />
+                                    New Analysis
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p className="text-xs">Start a new analysis</p></TooltipContent>
+                              </Tooltip>
+                            </div>
+
+                            <SignalBlock data={displayData} />
+                            <TechnicalGrid data={displayData} />
+                            <OptionChainSection data={displayData} />
+                            <SentimentSection data={displayData} />
+                            <RationaleSection data={displayData} />
+                          </>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center min-h-[500px] text-center space-y-5">
+                            <div className="relative">
+                              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/10 flex items-center justify-center">
+                                <FiBarChart2 className="w-9 h-9 text-muted-foreground/40" />
+                              </div>
+                              <div className="absolute -top-1 -right-1">
+                                <GlowDot color="bg-primary/50" />
+                              </div>
+                            </div>
+                            <div className="space-y-2 max-w-sm">
+                              <h3 className="text-base font-semibold">No Signal Generated</h3>
+                              <p className="text-xs text-muted-foreground leading-relaxed">
+                                Upload a chart image and click Generate Signal to get a comprehensive options trading signal with technicals, option chain analysis, and market sentiment.
+                              </p>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground/40">
+                              Or toggle &quot;Sample Data&quot; in the header to preview
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+              ) : (
+                /* History View */
+                <div className="p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                        <FiClock className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <h2 className="text-sm font-semibold">Signal History</h2>
+                        <p className="text-[10px] text-muted-foreground">{filteredHistory.length} signal{filteredHistory.length !== 1 ? 's' : ''} recorded</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filters */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1 border border-border/20">
+                      {(['all', 'CE', 'PE'] as const).map(f => (
+                        <button key={f} onClick={() => setHistoryFilter(f)} className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200', historyFilter === f ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                          {f === 'all' ? 'All' : `BUY ${f}`}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-1 bg-muted/30 rounded-lg p-1 border border-border/20">
+                      {(['all', 'Nifty 50', 'Bank Nifty'] as const).map(f => (
+                        <button key={f} onClick={() => setHistoryInstrumentFilter(f)} className={cn('px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200', historyInstrumentFilter === f ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                          {f === 'all' ? 'All' : f}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="relative flex-1 min-w-[150px] max-w-xs">
+                      <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input value={historySearch} onChange={(e) => setHistorySearch(e.target.value)} placeholder="Search signals..." className="text-xs pl-8 h-8 bg-input/30 border-border/30 rounded-lg" />
+                    </div>
+                  </div>
+
+                  {/* History List */}
+                  {filteredHistory.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {filteredHistory.map(item => (
+                        <div key={item.id} className="group">
+                          <HistoryCard
+                            item={item}
+                            expanded={expandedHistoryId === item.id}
+                            onToggle={() => setExpandedHistoryId(prev => prev === item.id ? null : item.id)}
+                            onDelete={() => handleDeleteHistory(item.id)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center min-h-[400px] text-center space-y-4">
+                      <div className="w-16 h-16 rounded-2xl bg-muted/20 border border-border/20 flex items-center justify-center">
+                        <FiClock className="w-7 h-7 text-muted-foreground/30" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="text-sm font-semibold">No Signals in History</h3>
+                        <p className="text-xs text-muted-foreground max-w-xs">
+                          {history.length > 0 ? 'No signals match your current filters.' : 'Head to the dashboard to create your first signal.'}
+                        </p>
+                      </div>
+                      {history.length === 0 && (
+                        <Button size="sm" variant="outline" onClick={() => setActiveNav('dashboard')} className="text-xs gap-1.5 rounded-lg">
+                          <FiBarChart2 className="w-3.5 h-3.5" />
+                          Go to Dashboard
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </main>
+          </div>
         </div>
-      </div>
+      </TooltipProvider>
     </ErrorBoundary>
   )
 }
