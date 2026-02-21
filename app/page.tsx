@@ -199,7 +199,7 @@ function getSignalColor(signal?: string): { bg: string; text: string; border: st
 
 function formatSignalForCopy(data: SignalData): string {
   const lines = [
-    `=== ELITE DERIVATIVES QUANT SIGNAL ===`,
+    `=== X!TX MARKET SIGNAL GENERATOR by DHR ===`,
     `Date: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
     ``,
     `SIGNAL: ${data?.signal_type ?? 'N/A'}`,
@@ -951,7 +951,7 @@ export default function Page() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <FiActivity className="w-5 h-5 text-primary" />
-                <h1 className="text-base font-bold tracking-tight">Elite Derivatives Quant</h1>
+                <h1 className="text-base font-bold tracking-tight">X!TX Market Signal Generator by DHR</h1>
               </div>
               <Separator orientation="vertical" className="h-5 bg-border" />
               <div className="flex items-center gap-1 bg-muted rounded-sm p-0.5">
