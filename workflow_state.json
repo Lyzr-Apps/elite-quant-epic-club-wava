@@ -1,0 +1,39 @@
+{
+  "agents": {
+    "Signal Orchestrator Manager": {
+      "agent_id": "699984fce6cce9ba73b56e32",
+      "role": "manager",
+      "provider": "OpenAI",
+      "model": "gpt-4.1",
+      "managed_agents": [
+        "699984d85dbb137e7b660506",
+        "699984d8cf2aa167c0547700",
+        "699984d98d37e909decd6cf5"
+      ]
+    },
+    "Chart Analysis Agent": {
+      "agent_id": "699984d85dbb137e7b660506",
+      "role": "sub-agent",
+      "provider": "Google",
+      "model": "gemini-2.5-pro"
+    },
+    "Market Sentiment Agent": {
+      "agent_id": "699984d8cf2aa167c0547700",
+      "role": "sub-agent",
+      "provider": "Perplexity",
+      "model": "sonar-pro"
+    },
+    "Signal Generator Agent": {
+      "agent_id": "699984d98d37e909decd6cf5",
+      "role": "sub-agent",
+      "provider": "OpenAI",
+      "model": "gpt-4.1"
+    }
+  },
+  "manager_agent_id": "699984fce6cce9ba73b56e32",
+  "sub_agent_ids": [
+    "699984d85dbb137e7b660506",
+    "699984d8cf2aa167c0547700",
+    "699984d98d37e909decd6cf5"
+  ]
+}

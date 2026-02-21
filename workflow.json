@@ -1,0 +1,68 @@
+{
+  "workflow": {
+    "nodes": [
+      {
+        "id": "input_node",
+        "type": "Input",
+        "label": "User Input",
+        "nodeCategory": "input"
+      },
+      {
+        "id": "manager_agent",
+        "type": "Agent",
+        "label": "Signal Orchestrator Manager",
+        "nodeCategory": "agent",
+        "agent_id": "699984fce6cce9ba73b56e32"
+      },
+      {
+        "id": "chart_analysis_agent",
+        "type": "Agent",
+        "label": "Chart Analysis Agent",
+        "nodeCategory": "agent",
+        "agent_id": "699984d85dbb137e7b660506"
+      },
+      {
+        "id": "market_sentiment_agent",
+        "type": "Agent",
+        "label": "Market Sentiment Agent",
+        "nodeCategory": "agent",
+        "agent_id": "699984d8cf2aa167c0547700"
+      },
+      {
+        "id": "signal_generator_agent",
+        "type": "Agent",
+        "label": "Signal Generator Agent",
+        "nodeCategory": "agent",
+        "agent_id": "699984d98d37e909decd6cf5"
+      },
+      {
+        "id": "output_node",
+        "type": "Output",
+        "label": "Signal Dashboard Output",
+        "nodeCategory": "end"
+      }
+    ],
+    "edges": [
+      {
+        "source": "input_node",
+        "target": "manager_agent"
+      },
+      {
+        "source": "manager_agent",
+        "target": "chart_analysis_agent"
+      },
+      {
+        "source": "manager_agent",
+        "target": "market_sentiment_agent"
+      },
+      {
+        "source": "manager_agent",
+        "target": "signal_generator_agent"
+      },
+      {
+        "source": "manager_agent",
+        "target": "output_node"
+      }
+    ]
+  }
+}
